@@ -69,7 +69,7 @@ export class TestRunner {
 
             const proc = cp.spawn(
                 this.ahkPath,
-                ['/ErrorStdOut=UTF-8', tempFile],
+                ['/ErrorStdOut=UTF-8', tempFile, path.dirname(workingDir)],
                 { cwd: path.dirname(workingDir) }
             );
 
