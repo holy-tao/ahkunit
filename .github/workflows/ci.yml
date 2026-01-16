@@ -25,6 +25,8 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
   test:
+    permissions:
+      contents: read
     strategy:
       matrix:
         os: [macos-latest, ubuntu-latest, windows-latest]
