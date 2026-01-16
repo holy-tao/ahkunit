@@ -5,6 +5,8 @@
 
 ;@ahkunit-include
 
+A_WorkingDir := A_Args[1]
+
 ; Escapes JSON for ingestion back into TypeScript
 JsonEscape(str) {
     str := StrReplace(str, "\", "\\")    ; Backslashes first!
