@@ -5,6 +5,7 @@ import * as path from 'path';
 import * as cp from 'child_process';
 import * as os from 'os';
 import { AhkError } from './ahkError';
+import { parseExecutedLines, TestItemCoverage } from './coverage';
 
 export interface TestResult {
     passed: boolean;
@@ -12,6 +13,7 @@ export interface TestResult {
     duration?: number;
     error?: AhkError;
     output?: string;
+    coverage?: TestItemCoverage;
 }
 
 export class TestRunner {
@@ -89,11 +91,16 @@ export class TestRunner {
                 const output = (stdout + stderr).trim();
 
                 if (code === 0 && output.includes('PASS')) {
+                    // Extract coverage information from between delimiters
+                    const coverageRegex = /<<<AHK_LINES_START>>>(.*?)<<<AHK_LINES_END>>>/s;
+                    const coverageMatch = output.match(coverageRegex);
+
                     resolve({ 
                         passed: true, 
                         message: '', 
                         duration: duration,
-                        output: output.replace('PASS', '').trim()
+                        output: output.replace('PASS', '').replace(coverageRegex, '').trim(),
+                        coverage: parseExecutedLines(coverageMatch ? coverageMatch[1].trim() : "")
                     });
                 } else {
                     try {
@@ -101,7 +108,6 @@ export class TestRunner {
                         const errRegex = /<<<AHK_ERROR_START>>>(.*?)<<<AHK_ERROR_END>>>/s;
 
                         const errorMatch = output.match(errRegex);
-                        const testOutput = output.replace(errRegex, '');
                         if (errorMatch && errorMatch[1]) {
                             const errorJson = errorMatch[1].trim();
                             const error = new AhkError(errorJson);
@@ -110,7 +116,7 @@ export class TestRunner {
                                 message: error.message,
                                 duration,
                                 error,
-                                output: testOutput
+                                output: output.replace(errRegex, '')
                             });
                         } else {
                             // Fallback: treat output as error message

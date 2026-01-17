@@ -10,6 +10,7 @@ A VS Code extension for running AutoHotkey v2 unit tests with full IDE integrati
 - **Gutter Icons**: Run individual tests directly from the editor with inline run/debug icons
 - **Detailed Failure Reports**: Comprehensive error messages with parsed stack traces for quick debugging
 - **Callstack Navigation**: Click through error stacks to jump to the failing line in your code
+- **Code Coverage Repoprts**: View code coverage by test or file
 - **Output Capture**: Automatically capture and display stdout/stderr from your tests
 - **Hierarchical Organization**: Organize tests into nested class hierarchies for better structure
 - **Test Filtering**: Easily run specific tests or entire test suites
@@ -20,6 +21,7 @@ A VS Code extension for running AutoHotkey v2 unit tests with full IDE integrati
 - [Usage](#usage)
   - [Test Structure](#test-structure)
   - [Test Discovery](#test-discovery)
+  - [Code Coverage](#code-coverage)
 - [Configuration](#configuration)
 
 ## Usage
@@ -117,6 +119,26 @@ TestClass {
     }
 }
 ```
+
+### Code Coverage
+
+Run a test with code coverage by right-clicking the gutter icon for the test or test group you want to run and selecting "Run with Coverage", or by selecting the "Run Tests with Coverage" option from the testing pane.
+
+![Coverage A screenshot of the extension running with a code coverage view](./assets/code-coverage.png)
+
+Coverage is calculated by parsing the output of [`ListLines`](https://www.autohotkey.com/docs/v2/lib/ListLines.htm) by way of [`ScriptInfo`](https://www.autohotkey.com/boards/viewtopic.php?t=9656) (credit to [Lexikos](https://github.com/lexikos) and [Descolada](https://github.com/descolada)). This approach has a few quirks and caveats:
+  - If your test case is very long and executes more than ~500 lines, the output may be incomplete. Consider writing shorter, more targeted test cases if this becomes a problem.
+  - A "line" as determined by the AHK interpreter is not necessarily a single line of source code. For example, a single [ternary](https://www.autohotkey.com/docs/v2/Variables.htm#ternary) expression is treated as one logical line by the interpreter, even if it's spread out over multiple lines in source code:
+    ```autohotkey
+    ; This appears as one line and only the first line will be highlighted
+    condition ? 
+        VeryLongStatementOne("param", "param", "param", "param", "param") : 
+        VeryLongStatementTwo("param", "param", "param", "param", "param")
+    ```
+    You can see this in the screenshot above - both `DllCall`s are considered to be on line 845. Other examples of this include function definitions with arguments on multiple lines and most continuation sections.
+  - If the code under tests sets `ListLines` to false, the report will be incomplete. 
+  
+You shouldn't rely on code coverage numbers, but it's a useful tool for discovering what, if anything, [definitely isn't being tested](https://martinfowler.com/bliki/TestCoverage.html).
 
 ## Configuration
 
