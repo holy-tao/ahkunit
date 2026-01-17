@@ -1,0 +1,62 @@
+---- C:\Users\taorc\AppData\Local\Temp\ahkunit-MagickWandSmokeTests.WriteImage_WithFilePath_WritesImage.temp.ahk
+013: MagickWandSmokeTests().WriteImage_WithFilePath_WritesImage()
+---- c:\Users\taorc\Documents\AutoHotkey\Lib\ImageMagick\tests\MagickWandSmoke.test.ahk
+041: wand := MagickWand()
+---- c:\Users\taorc\Documents\AutoHotkey\Lib\ImageMagick\Wand\MagickWand.ahk
+000: Super.__Init()
+178: this.ThrowForWarnings := false
+000: }
+186: If (!MagickWand.IsInstantiated)
+036: Return DllCall("CORE_RL_MagickWand_\IsMagickWandInstantiated")
+187: MagickWand.InstantiateEnvironment()
+025: DllCall("CORE_RL_MagickWand_\MagickWandGenesis")
+026: {
+026: OnExit((*) => MagickWand.Terminus(), 1)
+027: }
+189: this.ptr := ptr == 0 ? DllCall("CORE_RL_MagickWand_\NewMagickWand") : ptr
+190: }
+---- c:\Users\taorc\Documents\AutoHotkey\Lib\ImageMagick\tests\MagickWandSmoke.test.ahk
+042: wand.ReadImage("logo.png")
+---- c:\Users\taorc\Documents\AutoHotkey\Lib\ImageMagick\Wand\MagickWand.ahk
+804: success := 0
+805: Switch
+807: DllCall("CORE_RL_MagickWand_\MagickReadImage", "ptr", this, "astr", input, "int") (0.01)
+808: Case (input.HasProp("ptr") && input.HasProp("size")):
+814: this.ThrowForMagickException(input)
+1115: threshold := this.ThrowForWarnings ? MagickExceptionType.Warn_Min : MagickExceptionType.Error_Min
+---- c:\Users\taorc\Documents\AutoHotkey\Lib\ImageMagick\Wand\Errors\MagickExceptionType.ahk
+083: Return 400
+---- c:\Users\taorc\Documents\AutoHotkey\Lib\ImageMagick\Wand\MagickWand.ahk
+1116: exCode := this.GetExceptionType()
+1084: Return DllCall("CORE_RL_MagickWand_\MagickGetExceptionType", "ptr", this)
+1118: If (exCode > threshold)
+1124: }
+815: Return this
+---- c:\Users\taorc\Documents\AutoHotkey\Lib\ImageMagick\tests\MagickWandSmoke.test.ahk
+043: wand.WriteImage("logo.jpg")
+---- c:\Users\taorc\Documents\AutoHotkey\Lib\ImageMagick\Wand\MagickWand.ahk
+845: If (fileOrFileName is String)
+846: IsSpace(fileOrFileName) ? DllCall("CORE_RL_MagickWand_\MagickWriteImage", "ptr", this, "ptr", 0, "int") : DllCall("CORE_RL_MagickWand_\MagickWriteImage", "ptr", this, "astr", fileOrFileName, "
+849: }
+854: this.ThrowForMagickException(fileOrFileName)
+1115: threshold := this.ThrowForWarnings ? MagickExceptionType.Warn_Min : MagickExceptionType.Error_Min
+---- c:\Users\taorc\Documents\AutoHotkey\Lib\ImageMagick\Wand\Errors\MagickExceptionType.ahk
+083: Return 400
+---- c:\Users\taorc\Documents\AutoHotkey\Lib\ImageMagick\Wand\MagickWand.ahk
+1116: exCode := this.GetExceptionType()
+1084: Return DllCall("CORE_RL_MagickWand_\MagickGetExceptionType", "ptr", this)
+1118: If (exCode > threshold)
+1124: }
+855: Return this
+---- c:\Users\taorc\Documents\AutoHotkey\Lib\ImageMagick\tests\MagickWandSmoke.test.ahk
+045: Yunit.Assert(FileExist("logo.jpg"))
+---- c:\Users\taorc\Documents\AutoHotkey\Lib\ImageMagick\tests\YUnit\Yunit.ahk
+085: Try
+086: Message := params[1]
+087: Catch
+088: Message := "FAIL"
+089: If (!Value)
+091: }
+---- c:\Users\taorc\Documents\AutoHotkey\Lib\ImageMagick\tests\MagickWandSmoke.test.ahk
+046: FileDelete("logo.jpg")
+047: }
