@@ -3,15 +3,21 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { parseTestFile, TestClass } from './parser.js';
 import { TestRunner } from './runner.js';
+import { TestItemCoverage } from './coverage.js';
 
 export class AhkTestController implements vscode.Disposable {
     private controller: vscode.TestController;
     private runner: TestRunner;
     private disposables: vscode.Disposable[] = [];
 
+    private coverageDetails = new WeakMap<vscode.FileCoverage, vscode.StatementCoverage[]>();
+    private perTestCoverage = new Map<vscode.TestItem, TestItemCoverage>();
+
     //* NOTE: glob patterns are case insensitive in the Nov 26 release, I think this is changing though
     //* https://github.com/microsoft/vscode/issues/10633?timeline_page=1
     private testFileGlob: string;
+
+    //#region Initialization
 
     constructor(context: vscode.ExtensionContext) {
         this.controller = vscode.tests.createTestController(
@@ -26,6 +32,15 @@ export class AhkTestController implements vscode.Disposable {
             (request, token) => this.runHandler(request, token),
             true // isDefault
         );
+
+        // Coverage profile
+        const coverageProfile = this.controller.createRunProfile(
+            'Run with Coverage',
+            vscode.TestRunProfileKind.Coverage,
+            (request, token) => this.runHandler(request, token),
+            false
+        );
+        coverageProfile.loadDetailedCoverage = this.loadDetailedCoverage.bind(this);
 
         this.runner = new TestRunner(context);        
 
@@ -49,6 +64,27 @@ export class AhkTestController implements vscode.Disposable {
             files.map(async file => this.parseTestFile(file))
         );
     }
+
+    private watchForChanges() {
+        const watcher = vscode.workspace.createFileSystemWatcher(this.testFileGlob);
+        watcher.onDidChange(uri => this.parseTestFile(uri));
+        watcher.onDidCreate(uri => this.parseTestFile(uri));
+        watcher.onDidDelete(uri => this.controller.items.delete(uri.toString()));
+        
+        // https://stackoverflow.com/questions/73780808/is-there-a-match-function-for-vscode-globpattern
+        const onDidOpen = vscode.workspace.onDidOpenTextDocument(async doc => {
+            if(vscode.languages.match({ pattern: this.testFileGlob}, doc)) {
+                this.parseTestFile(doc.uri);
+            }
+        });
+
+        this.disposables.push(watcher);
+        this.disposables.push(onDidOpen);
+    }
+
+    //#endregion
+
+    //#region Test Discovery
 
     private async parseTestFile(uri: vscode.Uri) {
         const content = await vscode.workspace.fs.readFile(uri);
@@ -100,9 +136,21 @@ export class AhkTestController implements vscode.Disposable {
         }
     }
 
+    //#endregion
+    
+    //#region Test Running
+
     private async runHandler(request: vscode.TestRunRequest, token: vscode.CancellationToken) {
+        const withCoverage = request.profile?.kind === vscode.TestRunProfileKind.Coverage;
+
         const run = this.controller.createTestRun(request);
         const testsToRun = this.collectTests(request);
+
+        // Clear previous coverage data
+        if (withCoverage) {
+            this.perTestCoverage.clear();
+            this.coverageDetails = new WeakMap();
+        }
 
         run.appendOutput(`🧪 Collected ${testsToRun.length} tests to run\r\n`);
 
@@ -124,6 +172,10 @@ export class AhkTestController implements vscode.Disposable {
                     run.passed(test, result.duration);
                     run.appendOutput(`✅ PASS: ${testName}\r\n`, undefined, test);
                     numPassed++;
+
+                    if (withCoverage && result.coverage) {
+                        this.perTestCoverage.set(test, result.coverage);
+                    }
                 } 
                 else {
                     const testMessage: vscode.TestMessage = {
@@ -156,6 +208,12 @@ export class AhkTestController implements vscode.Disposable {
         if(numErrored > 0) { run.appendOutput(`    🚨 ${numErrored} errored\r\n`); }
         if(numTotal !== testsToRun.length) { run.appendOutput(`    ➖ ${testsToRun.length - numTotal} skipped\r\n`); }
 
+        // After all tests, build and report file coverage
+        if (withCoverage) {
+            console.log("Reporting test coverage");
+            await this.reportCoverage(run);
+        }
+
         run.end();
     }
 
@@ -185,22 +243,96 @@ export class AhkTestController implements vscode.Disposable {
         }
     }
 
-    private watchForChanges() {
-        const watcher = vscode.workspace.createFileSystemWatcher(this.testFileGlob);
-        watcher.onDidChange(uri => this.parseTestFile(uri));
-        watcher.onDidCreate(uri => this.parseTestFile(uri));
-        watcher.onDidDelete(uri => this.controller.items.delete(uri.toString()));
-        
-        // https://stackoverflow.com/questions/73780808/is-there-a-match-function-for-vscode-globpattern
-        const onDidOpen = vscode.workspace.onDidOpenTextDocument(async doc => {
-            if(vscode.languages.match({ pattern: this.testFileGlob}, doc)) {
-                this.parseTestFile(doc.uri);
-            }
-        });
+    //#endregion
 
-        this.disposables.push(watcher);
-        this.disposables.push(onDidOpen);
+    //#region Test Coverage
+    private async reportCoverage(run: vscode.TestRun) {
+        // Merge all per-test coverage into per-file
+        const mergedByFile = new Map<string, Set<number>>();
+        
+        for (const [_test, coverage] of this.perTestCoverage) {
+            for (const [uriString, lines] of coverage) {
+                if (!mergedByFile.has(uriString)) {
+                    mergedByFile.set(uriString, new Set());
+                }
+                for (const line of lines) {
+                    mergedByFile.get(uriString)!.add(line);
+                }
+            }
+        }
+
+        // Create FileCoverage for each file
+        for (const [uriString, coveredLines] of mergedByFile) {
+            const uri = vscode.Uri.parse(uriString);
+            if (uri.fsPath.includes('\\Temp\\') || uri.fsPath.includes('/tmp/')) {
+                continue;   // Skip temp files
+            }
+
+            const totalLines = await this.countExecutableLines(uri);
+            
+            const fileCoverage = new vscode.FileCoverage(
+                uri,
+                new vscode.TestCoverageCount(coveredLines.size, totalLines)
+            );
+
+            // Build detailed statement coverage
+            const details = Array.from(coveredLines)
+                .sort((a, b) => a - b)
+                .map(line => new vscode.StatementCoverage(
+                    true, // executed once (or could track actual count)
+                    new vscode.Position(line, 0)
+                ));
+            
+            this.coverageDetails.set(fileCoverage, details);
+            run.addCoverage(fileCoverage);
+        }
     }
+
+    private async loadDetailedCoverage(_testRun: vscode.TestRun, fileCoverage: vscode.FileCoverage, _token: vscode.CancellationToken): Promise<vscode.StatementCoverage[]> {
+        // ts80007 expected, loadDetailedCoverage needs a Promise<StatementCoverage[]> so we give it one
+        console.log("loadDetailedCoverage called");
+        return await this.coverageDetails.get(fileCoverage) ?? [];
+    }
+
+    private async countExecutableLines(uri: vscode.Uri): Promise<number> {
+        let text: string;
+        try {
+            const content = await vscode.workspace.fs.readFile(uri);
+            text = Buffer.from(content).toString('utf8');
+        } 
+        catch(err) {
+            console.error(err);
+            return 0;
+        }
+        
+        let count = 0;
+        let inBlockComment = false;
+
+        for(const line of text.split(/\r?\n/g)) {
+            const trimmed = line.trim();
+
+            if(inBlockComment) {
+                if(trimmed.endsWith('*/')) {
+                    inBlockComment = false;
+                }
+
+                continue;
+            }
+
+            if(trimmed.startsWith('/*')) {
+                inBlockComment = true;
+                continue;
+            }
+
+            if(trimmed && !trimmed.startsWith(';') && !trimmed.startsWith('#')) {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+    //#endregion
 
     dispose() {
         this.controller.dispose();
