@@ -32,6 +32,13 @@
     "vscode": "^1.108.0"
   },
   "main": "./out/extension.js",
+  "files": [
+    "out/*.js",
+    "templates/",
+    "CHANGELOG.md",
+    "LICENSE",
+    "README.md"
+  ],
   "contributes": {
     "configuration": {
       "title": "AHK Test Runner",
