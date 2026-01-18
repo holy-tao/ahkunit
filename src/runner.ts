@@ -17,8 +17,9 @@ export interface TestResult {
 }
 
 export class TestRunner {
-    private templateContent: string;
-    private ahkPath: string;
+    private readonly templateContent: string;
+    private readonly ahkPath: string;
+    private readonly warningStatements: string;
 
     constructor(private context: vscode.ExtensionContext) {
         // Load template once at construction
@@ -30,8 +31,13 @@ export class TestRunner {
         this.templateContent = fs.readFileSync(templatePath.fsPath, 'utf8');
 
         // Get AHK path from settings
-        const config = vscode.workspace.getConfiguration('ahkTestRunner');
+        const config = vscode.workspace.getConfiguration('ahkunit');
         this.ahkPath = config.get<string>('executablePath') || 'C:\\Program Files\\AutoHotkey\\v2\\AutoHotkey64.exe';
+
+        const warnings = config.get<string[]>('enabledWarnings') || [];
+        this.warningStatements = warnings
+            .map(text => `#Warn ${text}, StdOut`)
+            .join('\r\n') + '\r\n';
     }
 
     async runTest(test: vscode.TestItem, token: vscode.CancellationToken): Promise<TestResult> {
@@ -46,6 +52,10 @@ export class TestRunner {
 
         // Build the script from template
         const script = this.templateContent
+            .replace(
+                ';@ahkunit-warn',
+                this.warningStatements
+            )
             .replace(
                 ';@ahkunit-include',
                 `#Include "${filePath.replace(/\\/g, '/')}"`

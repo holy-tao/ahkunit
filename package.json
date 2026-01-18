@@ -52,6 +52,24 @@
           "type": "string",
           "default": "**/*.test.ahk",
           "description": "Glob pattern used to identify test files"
+        },
+        "ahkunit.enabledWarnings": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "VarUnset",
+              "LocalSameAsGlobal",
+              "Unreachable"
+            ],
+            "enumDescriptions": [
+              "Shown when a variable is used which may be unset.",
+              "Shown for each undeclared local variable which has the same name as a global variable.",
+              "Shown for each line that immediately follows a Return, Break, Continue, Throw or Goto at the same nesting level, unless that line is the target of a label."
+            ]
+          },
+          "default": ["VarUnset", "Unreachable"],
+          "markdownDescription": "The list of [warnings](https://www.autohotkey.com/docs/v2/lib/_Warn.htm) to enable for test methods. If any violations are found, they are displayed in the test output."
         }
       }
     }
