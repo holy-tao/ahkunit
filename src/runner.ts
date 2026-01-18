@@ -98,7 +98,7 @@ export class TestRunner {
                 try { fs.unlinkSync(tempFile); } catch {}
 
                 const duration = Date.now() - startTime;
-                const output = (stdout + stderr).trim();
+                const output = this.normalizeToCRLF((stdout + stderr).trim());
 
                 if (code === 0 && output.includes('PASS')) {
                     // Extract coverage information from between delimiters
@@ -154,5 +154,11 @@ export class TestRunner {
                 });
             });
         });
+    }
+
+    private normalizeToCRLF(str: string): string {
+        return str
+            .replace(/\r\n|\r/g, '\n')  // Normalize to LF
+            .replace(/\n/g, '\r\n');    // Normalize back to CRLF
     }
 }
