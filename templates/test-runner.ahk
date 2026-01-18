@@ -1,4 +1,5 @@
 #Requires AutoHotkey v2.0
+;@ahkunit-warn
 ListLines(false)
 
 ; Ahk script that runs a single test method and prints its result to the command line. On failure, encodes

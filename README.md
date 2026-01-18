@@ -140,3 +140,6 @@ You shouldn't rely on code coverage numbers, but it's a useful tool for discover
 |---------|---------|-------------|
 | `ahkunit.executablePath` | `C:\Program Files\AutoHotkey\v2\AutoHotkey64.exe` | Path to AutoHotkey v2 executable |
 | `ahkunit.testFileGlob` | `**/*.test.ahk` | [Glob pattern](https://code.visualstudio.com/docs/editor/glob-patterns) used to identify test files |
+| `ahkunit.enabledWarnings` | `**/*.test.ahk` | Zero or more load-time [warnings](https://www.autohotkey.com/docs/v2/lib/_Warn.htm) to enable. Warnings are logged to stdout and show in the test output. If `failOnWarnings` is set, warnings will cause a test or test suite to fail. |
+| `ahkunit.enabledWarnings` | `["VarUnset", "Unreachable"]` | Zero or more load-time [warnings](https://www.autohotkey.com/docs/v2/lib/_Warn.htm) to enable. Warnings are logged to stdout and show in the test output. If `failOnWarnings` is set, warnings will cause a test or test suite to fail. |
+| `ahkunit.failOnWarnings` | `false` | If `true`, a test will be marked as failed if any warnings are detected in its output, even if it doesn't throw an error. |
