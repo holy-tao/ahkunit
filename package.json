@@ -12,6 +12,7 @@
     "ahk2",
     "test"
   ],
+  "publisher": "holy-tao",
   "license": "See license in LICENSE",
   "preview": true,
   "homepage": "https://github.com/holy-tao/ahkunit/blob/main/README.md",
