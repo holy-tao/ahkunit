@@ -142,6 +142,7 @@ export class AhkTestController implements vscode.Disposable {
 
     private async runHandler(request: vscode.TestRunRequest, token: vscode.CancellationToken) {
         const withCoverage = request.profile?.kind === vscode.TestRunProfileKind.Coverage;
+        this.runner.UpdateConfig();
 
         const run = this.controller.createTestRun(request);
         const testsToRun = this.collectTests(request);

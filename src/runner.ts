@@ -7,6 +7,10 @@ import * as os from 'os';
 import { AhkError } from './ahkError';
 import { parseExecutedLines, TestItemCoverage } from './coverage';
 
+const coverageRegex = /<<<AHK_LINES_START>>>(.*?)<<<AHK_LINES_END>>>/s;
+const errRegex = /<<<AHK_ERROR_START>>>(.*?)<<<AHK_ERROR_END>>>/s;
+const warningRegex = /^(.+) \((\d+)\) : ==> (.+)$/gm;
+
 export interface TestResult {
     passed: boolean;
     message: string;
@@ -19,7 +23,8 @@ export interface TestResult {
 export class TestRunner {
     private readonly templateContent: string;
     private readonly ahkPath: string;
-    private readonly warningStatements: string;
+    private warningStatements: string;
+    private failOnWarnings: boolean;
 
     constructor(private context: vscode.ExtensionContext) {
         // Load template once at construction
@@ -38,6 +43,20 @@ export class TestRunner {
         this.warningStatements = warnings
             .map(text => `#Warn ${text}, StdOut`)
             .join('\r\n') + '\r\n';
+        this.failOnWarnings = config.get<boolean>('failOnWarnings') || false;
+    }
+
+    /**
+     * Updates any updateable config from vscode settings - call before starting a test suite
+     */
+    public UpdateConfig() {
+        const config = vscode.workspace.getConfiguration('ahkunit');
+
+        const warnings = config.get<string[]>('enabledWarnings') || [];
+        this.warningStatements = warnings
+            .map(text => `#Warn ${text}, StdOut`)
+            .join('\r\n') + '\r\n';
+        this.failOnWarnings = config.get<boolean>('failOnWarnings') || false;
     }
 
     async runTest(test: vscode.TestItem, token: vscode.CancellationToken): Promise<TestResult> {
@@ -98,25 +117,24 @@ export class TestRunner {
                 try { fs.unlinkSync(tempFile); } catch {}
 
                 const duration = Date.now() - startTime;
-                const output = this.normalizeToCRLF((stdout + stderr).trim());
+                let output = this.normalizeToCRLF((stdout + stderr).trim());
 
-                if (code === 0 && output.includes('PASS')) {
-                    // Extract coverage information from between delimiters
-                    const coverageRegex = /<<<AHK_LINES_START>>>(.*?)<<<AHK_LINES_END>>>/s;
-                    const coverageMatch = output.match(coverageRegex);
+                // Extract coverage information from between delimiters
+                const coverageMatch = output.match(coverageRegex);
+                output = output.replace(coverageRegex, '');
 
+                if (code === 0 && output.includes('PASS') && !(this.failOnWarnings && output.match(warningRegex))) {
                     resolve({ 
                         passed: true, 
                         message: '', 
                         duration: duration,
-                        output: output.replace('PASS', '').replace(coverageRegex, '').trim(),
+                        output: output.replace('PASS', '').trim(),
                         coverage: parseExecutedLines(coverageMatch ? coverageMatch[1].trim() : "")
                     });
-                } else {
+                } 
+                else {
                     try {
                         // Extract error JSON from between delimiters
-                        const errRegex = /<<<AHK_ERROR_START>>>(.*?)<<<AHK_ERROR_END>>>/s;
-
                         const errorMatch = output.match(errRegex);
                         if (errorMatch && errorMatch[1]) {
                             const errorJson = errorMatch[1].trim();
@@ -126,10 +144,12 @@ export class TestRunner {
                                 message: error.message,
                                 duration,
                                 error,
-                                output: output.replace(errRegex, '')
+                                output: output.replace(errRegex, '').replace(coverageRegex, '')
                             });
-                        } else {
+                        } 
+                        else {
                             // Fallback: treat output as error message
+                            output = output.trim();
                             resolve({
                                 passed: false,
                                 message: output || `Exit code: ${code}`,
@@ -137,10 +157,11 @@ export class TestRunner {
                                 output: output
                             });
                         }
-                    } catch {
+                    } 
+                    catch {
                         resolve({
                             passed: false,
-                            message: output || `Exit code: ${code}`,
+                            message: output.trim() || `Exit code: ${code}`,
                             duration
                         });
                     }

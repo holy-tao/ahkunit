@@ -66,10 +66,16 @@
               "Shown when a variable is used which may be unset.",
               "Shown for each undeclared local variable which has the same name as a global variable.",
               "Shown for each line that immediately follows a Return, Break, Continue, Throw or Goto at the same nesting level, unless that line is the target of a label."
-            ]
+            ],
+            "uniqueItems": true
           },
           "default": ["VarUnset", "Unreachable"],
           "markdownDescription": "The list of [warnings](https://www.autohotkey.com/docs/v2/lib/_Warn.htm) to enable for test methods. If any violations are found, they are displayed in the test output."
+        },
+        "ahkunit.failOnWarnings": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Whether or not a test should fail if any warnings are produced. You can configure warnings above with the `enabledWarnings` setting."
         }
       }
     }
