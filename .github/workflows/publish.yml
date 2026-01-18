@@ -1,0 +1,33 @@
+name: Publish Extension
+
+on:
+  release:
+    types: [published] # This triggers the workflow when a release is published
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+            node-version: 22.x
+      
+      - name: Install dependencies
+        run: npm install
+
+      - name: Publish to Visual Studio Marketplace
+        uses: HaaLeo/publish-vscode-extension@v1
+        with:
+          pat: ${{ secrets.VSCE_PAT }}
+          registryUrl: https://marketplace.visualstudio.com/
+
+      - name: Publish to Open VSX Registry
+        uses: HaaLeo/publish-vscode-extension@v1
+        with:
+          pat: ${{ secrets.OPENVSX_ACCESS_TOKEN }}
+          registryUrl: https://open-vsx.org
