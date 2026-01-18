@@ -90,17 +90,6 @@ By default, AHKUnit discovers files matching the [glob pattern](https://code.vis
 
 AHKUnit scans discovered files for classes and methods to form a heirarchy as described above. 
 
-> [!WARNING]
-> The extension currently has limited support for [fat arrow functions](https://www.autohotkey.com/docs/v2/Variables.htm#fat-arrow), as its parsing is somewhat basic. Any fat arrow functions you use as test methods must be one line only:
-> ```autohotkey
-> ; This will be parsed correctly
-> ValidFatArrowTestMethod() => ExampleFunction(1, 2, 3)
->
-> ; This will not
-> InvalidFatArrowTestMethod() =>
->     ExampleFunction("param1", "param2", "param3")
-> ```
-
 #### Excluding Classes and Methods
 The parser ignores methods starting with `_` (including builtins like `__New` and `__Delete`), which can be used as helpers. Additionally, you can explcitly exclude classes and methods using the `;@ahkunit-ignore` directive. Ignoring a class also ignores all of its methods. Static methods are also ignored.
 

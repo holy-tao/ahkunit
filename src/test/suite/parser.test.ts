@@ -175,4 +175,47 @@ suite('Parser Test Suite', () => {
         assert.ok(paths.includes('BroadCategory.Subcategory2.Test3_Condition_ExpectedBehavior'));
         assert.ok(paths.includes('AnotherTopLevel.TestAtTopLevel'));
     });
+
+    test('handles fat arrow functions with statements on subsequent lines', () => {
+        const content = `
+            class Test {
+                FatArrow() =>
+                    DoSomething()
+
+                NotFatArrow() {
+                    DoSomething()
+                }
+            }
+        `;
+
+        const classes = parseTestFile(content);
+        assert.strictEqual(classes.length, 1, 'Clases should have 1 class');
+
+        const testClass = classes.find(c => c.name === 'Test');
+        assert.ok(testClass, 'Test should exist');
+        assert.ok(testClass.methods.find(m => m.name === 'FatArrow'), 'FatArrow should exist');
+        assert.ok(testClass.methods.find(m => m.name === 'NotFatArrow'), 'NotFatArrow should exist');
+    });
+
+    test('handles fat arrow functions with statements spanning multiple lines', () => {
+        const content = `
+            class Test {
+                FatArrow() => DoSomething(arg1,
+                    arg2, arg3,
+                    "argument four")
+
+                NotFatArrow() {
+                    DoSomething()
+                }
+            }
+        `;
+
+        const classes = parseTestFile(content);
+        assert.strictEqual(classes.length, 1, 'Clases should have 1 class');
+
+        const testClass = classes.find(c => c.name === 'Test');
+        assert.ok(testClass, 'Test should exist');
+        assert.ok(testClass.methods.find(m => m.name === 'FatArrow'), 'FatArrow should exist');
+        assert.ok(testClass.methods.find(m => m.name === 'NotFatArrow'), 'NotFatArrow should exist');
+    });
 });
