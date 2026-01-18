@@ -1,5 +1,8 @@
 name: Publish Extension
 
+permissions:
+  contents: read
+
 on:
   release:
     types: [published] # This triggers the workflow when a release is published
