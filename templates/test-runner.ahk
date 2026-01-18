@@ -10,9 +10,17 @@ ListLines(false)
 A_WorkingDir := A_Args[1]
 
 try {
+    DllCall("QueryPerformanceFrequency", "Int64*", &freq := 0)
+    DllCall("QueryPerformanceCounter", "Int64*", &counterBefore := 0)
     ListLines(true)
+
     ;@ahkunit-call
+
     ListLines(false)
+    DllCall("QueryPerformanceCounter", "Int64*", &counterAfter := 0)
+
+    duration := (counterAfter - counterBefore) / freq * 1000    ; VSCode wants duration in milliseconds
+    FileAppend(Format("<<<AHK_DURATION_START>>>{1}<<<AHK_DURATION_END>>>`r`n", duration), "*")
 
     ; Coverage preamble and "Press [F5] to refresh" are split from lines by a blank line
     lines := StrSplit(ScriptInfo("ListLines"), "`r`n`r`n")[2]
@@ -46,6 +54,12 @@ catch Error as err {
     FileAppend("<<<AHK_ERROR_START>>>", "*")
     FileAppend(errorJson, "*")
     FileAppend("<<<AHK_ERROR_END>>>", "*")
+
+    DllCall("QueryPerformanceCounter", "Int64*", &counterAfter := 0)
+
+    duration := (counterAfter - counterBefore) / freq * 1000    ; VSCode wants duration in milliseconds
+    FileAppend(Format("<<<AHK_DURATION_START>>>{1}<<<AHK_DURATION_END>>>`r`n", duration), "*")
+
     ExitApp(1)
 }
 

@@ -3,7 +3,7 @@
 import * as assert from 'assert';
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { TestRunner } from '../../runner';
+import { TestRunner, TestStatus } from '../../runner';
 
 /**
  * Tests for running unit tests. These require AHKv2 to be installed on your local machine
@@ -76,7 +76,7 @@ suite('Test Runner Integration Suite', () => {
         const token = new vscode.CancellationTokenSource().token;
         const result = await runner.runTest(testItem, token);
 
-        assert.strictEqual(result.passed, true, `Test should pass but got: ${result.message}`);
+        assert.strictEqual(result.status, TestStatus.Passed, `Test should pass but got: ${result.message}`);
         assert.strictEqual(result.message, '', 'Passing test should have empty message');
         assert.ok(result.duration !== undefined, 'Result should have duration');
     });
@@ -101,7 +101,7 @@ suite('Test Runner Integration Suite', () => {
         const token = new vscode.CancellationTokenSource().token;
         const result = await runner.runTest(testItem, token);
 
-        assert.strictEqual(result.passed, false, 'Test should fail');
+        assert.strictEqual(result.status, TestStatus.Failed, 'Test should fail');
         assert.ok(result.message.includes('Intentional test failure'), 
             'Error message should contain the thrown error');
         assert.ok(result.error !== undefined, 'Result should have error object');
@@ -131,7 +131,7 @@ suite('Test Runner Integration Suite', () => {
         const token = new vscode.CancellationTokenSource().token;
         const result = await runner.runTest(testItem, token);
 
-        assert.strictEqual(result.passed, false, 'Test should fail');
+        assert.strictEqual(result.status, TestStatus.Failed, 'Test should fail');
         assert.ok(result.message.includes('Test failed after logging'),
             `Error message should contain the test failure message: "${result.message}"`);
         assert.ok(result.error !== undefined, 'Result should have error object');

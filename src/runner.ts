@@ -9,10 +9,15 @@ import { parseExecutedLines, TestItemCoverage } from './coverage';
 
 const coverageRegex = /<<<AHK_LINES_START>>>(.*?)<<<AHK_LINES_END>>>/s;
 const errRegex = /<<<AHK_ERROR_START>>>(.*?)<<<AHK_ERROR_END>>>/s;
+const durationRegex = /<<<AHK_DURATION_START>>>(.*?)<<<AHK_DURATION_END>>>/s;
 const warningRegex = /^(.+) \((\d+)\) : ==> (.+)$/gm;
 
+export enum TestStatus {
+    Passed, Failed, Errored, Skipped
+}
+
 export interface TestResult {
-    passed: boolean;
+    status: TestStatus;
     message: string;
     duration?: number;
     error?: AhkError;
@@ -116,16 +121,23 @@ export class TestRunner {
                 // Clean up temp file
                 try { fs.unlinkSync(tempFile); } catch {}
 
-                const duration = Date.now() - startTime;
                 let output = this.normalizeToCRLF((stdout + stderr).trim());
 
                 // Extract coverage information from between delimiters
                 const coverageMatch = output.match(coverageRegex);
                 output = output.replace(coverageRegex, '');
 
+                // Extract duration information from delimiters
+                const durationMatch = output.match(durationRegex);
+                if(!durationMatch) {
+                    throw Error("Failed to parse test duration from AHK script!");
+                }
+                const duration = Number.parseFloat(durationMatch[1]);
+                output = output.replace(durationRegex, '');
+
                 if (code === 0 && output.includes('PASS') && !(this.failOnWarnings && output.match(warningRegex))) {
                     resolve({ 
-                        passed: true, 
+                        status: TestStatus.Passed, 
                         message: '', 
                         duration: duration,
                         output: output.replace('PASS', '').trim(),
@@ -140,7 +152,7 @@ export class TestRunner {
                             const errorJson = errorMatch[1].trim();
                             const error = new AhkError(errorJson);
                             resolve({
-                                passed: false,
+                                status: TestStatus.Failed,
                                 message: error.message,
                                 duration,
                                 error,
@@ -151,7 +163,7 @@ export class TestRunner {
                             // Fallback: treat output as error message
                             output = output.trim();
                             resolve({
-                                passed: false,
+                                status: TestStatus.Failed,
                                 message: output || `Exit code: ${code}`,
                                 duration,
                                 output: output
@@ -160,7 +172,7 @@ export class TestRunner {
                     } 
                     catch {
                         resolve({
-                            passed: false,
+                            status: TestStatus.Errored,
                             message: output.trim() || `Exit code: ${code}`,
                             duration
                         });
@@ -170,7 +182,7 @@ export class TestRunner {
 
             proc.on('error', (err) => {
                 resolve({
-                    passed: false,
+                    status: TestStatus.Errored,
                     message: `Failed to start AHK: ${err.message}`
                 });
             });
