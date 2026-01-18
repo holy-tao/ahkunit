@@ -1,12 +1,15 @@
 name: Publish Extension
 
+permissions:
+  contents: read
+
 on:
   release:
     types: [published] # This triggers the workflow when a release is published
   workflow_dispatch:
 
 jobs:
-  publish:
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -15,19 +18,40 @@ jobs:
       - name: Install Node.js
         uses: actions/setup-node@v4
         with:
-            node-version: 22.x
-      
-      - name: Install dependencies
-        run: npm install
+          node-version: 22.x
 
-      - name: Publish to Visual Studio Marketplace
+      - run: npm install
+      - run: npm run compile
+
+      - name: Package extension
+        run: npx vsce package -o extension.vsix
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: extension-build
+          path: ./extension.vsix
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false 
+      matrix:
+        include:
+          - registry: vscode
+            registryUrl: https://marketplace.visualstudio.com/
+          - registry: openvsx
+            registryUrl: https://open-vsx.org
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: extension-build
+
+      - name: Publish extension
         uses: HaaLeo/publish-vscode-extension@v1
         with:
-          pat: ${{ secrets.VSCE_PAT }}
-          registryUrl: https://marketplace.visualstudio.com/
-
-      - name: Publish to Open VSX Registry
-        uses: HaaLeo/publish-vscode-extension@v1
-        with:
-          pat: ${{ secrets.OPENVSX_ACCESS_TOKEN }}
-          registryUrl: https://open-vsx.org
+          extensionFile: extension.vsix
+          pat: ${{ matrix.registry == 'vscode' && secrets.VSCE_PAT || secrets.OPENVSX_ACCESS_TOKEN }}
+          registryUrl: ${{ matrix.registryUrl }}
