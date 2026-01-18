@@ -27,7 +27,7 @@
     "type": "github",
     "url": "https://github.com/holy-tao/ahkunit"
   },
-  "version": "0.2.2",
+  "version": "0.2.3",
   "engines": {
     "vscode": "^1.108.0"
   },
@@ -69,7 +69,10 @@
             ],
             "uniqueItems": true
           },
-          "default": ["VarUnset", "Unreachable"],
+          "default": [
+            "VarUnset",
+            "Unreachable"
+          ],
           "markdownDescription": "The list of [warnings](https://www.autohotkey.com/docs/v2/lib/_Warn.htm) to enable for test methods. If any violations are found, they are displayed in the test output."
         },
         "ahkunit.failOnWarnings": {
