@@ -4,6 +4,11 @@ A VS Code extension for running AutoHotkey v2 unit tests with full IDE integrati
 
 ![Screenshot A screenshot of the extension in action](./assets/inline-error-information.png)
 
+### Install
+Install for [VSCode](https://marketplace.visualstudio.com/items?itemName=holy-tao.ahkunit) | [OpenVSX](https://open-vsx.org/extension/holy-tao/ahkunit) | from the the [latest GitHub release](https://github.com/holy-tao/ahkunit/releases/latest)
+
+You can install the absolute latest build - which may be unstable - from [GitHub actions](https://github.com/holy-tao/ahkunit/actions/workflows/ci.yml)
+
 ## Features
 
 - **Test Explorer Integration**: View and manage all tests in VS Code's Test Explorer sidebar
