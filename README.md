@@ -15,7 +15,7 @@ You can install the absolute latest build - which may be unstable - from [GitHub
 - **Gutter Icons**: Run individual tests directly from the editor with inline run/debug icons
 - **Detailed Failure Reports**: Comprehensive error messages with parsed stack traces for quick debugging
 - **Callstack Navigation**: Click through error stacks to jump to the failing line in your code
-- **Code Coverage Repoprts**: View code coverage by test or file
+- **Code Coverage Reports**: View code coverage by test or file
 - **Output Capture**: Automatically capture and display stdout/stderr from your tests
 - **Hierarchical Organization**: Organize tests into nested class hierarchies for better structure
 - **Test Filtering**: Easily run specific tests or entire test suites
