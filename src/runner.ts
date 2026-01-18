@@ -9,6 +9,7 @@ import { parseExecutedLines, TestItemCoverage } from './coverage';
 
 const coverageRegex = /<<<AHK_LINES_START>>>(.*?)<<<AHK_LINES_END>>>/s;
 const errRegex = /<<<AHK_ERROR_START>>>(.*?)<<<AHK_ERROR_END>>>/s;
+const durationRegex = /<<<AHK_DURATION_START>>>(.*?)<<<AHK_DURATION_END>>>/s;
 const warningRegex = /^(.+) \((\d+)\) : ==> (.+)$/gm;
 
 export enum TestStatus {
@@ -120,12 +121,19 @@ export class TestRunner {
                 // Clean up temp file
                 try { fs.unlinkSync(tempFile); } catch {}
 
-                const duration = Date.now() - startTime;
                 let output = this.normalizeToCRLF((stdout + stderr).trim());
 
                 // Extract coverage information from between delimiters
                 const coverageMatch = output.match(coverageRegex);
                 output = output.replace(coverageRegex, '');
+
+                // Extract duration information from delimiters
+                const durationMatch = output.match(durationRegex);
+                if(!durationMatch) {
+                    throw Error("Failed to parse test duration from AHK script!");
+                }
+                const duration = Number.parseFloat(durationMatch[1]);
+                output = output.replace(durationRegex, '');
 
                 if (code === 0 && output.includes('PASS') && !(this.failOnWarnings && output.match(warningRegex))) {
                     resolve({ 
