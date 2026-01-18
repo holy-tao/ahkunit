@@ -65,6 +65,10 @@ export class TestRunner {
     }
 
     async runTest(test: vscode.TestItem, token: vscode.CancellationToken): Promise<TestResult> {
+        if(token.isCancellationRequested) {
+            return {message: "Skipped", status: TestStatus.Skipped };
+        }
+
         // Parse test ID: "file://path::ClassName::NestedClass::MethodName"
         const parts = test.id.split('::');
         const methodName = parts.pop()!;
@@ -101,7 +105,9 @@ export class TestRunner {
 
     private executeTest(tempFile: string, workingDir: string, token: vscode.CancellationToken): Promise<TestResult> {
         return new Promise((resolve) => {
-            const startTime = Date.now();
+            if(token.isCancellationRequested) {
+                resolve({message: "Skipped", status: TestStatus.Skipped });
+            }
 
             const proc = cp.spawn(
                 this.ahkPath,
@@ -115,7 +121,10 @@ export class TestRunner {
             proc.stdout.on('data', (data) => { stdout += data.toString(); });
             proc.stderr.on('data', (data) => { stderr += data.toString(); });
 
-            token.onCancellationRequested(() => proc.kill());
+            token.onCancellationRequested(() => {
+                setTimeout(() => proc.kill());
+                resolve( {message: "Test cancelled", status: TestStatus.Skipped} );
+            });
 
             proc.on('close', (code) => {
                 // Clean up temp file
