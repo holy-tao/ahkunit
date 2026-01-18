@@ -11,8 +11,12 @@ const coverageRegex = /<<<AHK_LINES_START>>>(.*?)<<<AHK_LINES_END>>>/s;
 const errRegex = /<<<AHK_ERROR_START>>>(.*?)<<<AHK_ERROR_END>>>/s;
 const warningRegex = /^(.+) \((\d+)\) : ==> (.+)$/gm;
 
+export enum TestStatus {
+    Passed, Failed, Errored, Skipped
+}
+
 export interface TestResult {
-    passed: boolean;
+    status: TestStatus;
     message: string;
     duration?: number;
     error?: AhkError;
@@ -125,7 +129,7 @@ export class TestRunner {
 
                 if (code === 0 && output.includes('PASS') && !(this.failOnWarnings && output.match(warningRegex))) {
                     resolve({ 
-                        passed: true, 
+                        status: TestStatus.Passed, 
                         message: '', 
                         duration: duration,
                         output: output.replace('PASS', '').trim(),
@@ -140,7 +144,7 @@ export class TestRunner {
                             const errorJson = errorMatch[1].trim();
                             const error = new AhkError(errorJson);
                             resolve({
-                                passed: false,
+                                status: TestStatus.Failed,
                                 message: error.message,
                                 duration,
                                 error,
@@ -151,7 +155,7 @@ export class TestRunner {
                             // Fallback: treat output as error message
                             output = output.trim();
                             resolve({
-                                passed: false,
+                                status: TestStatus.Failed,
                                 message: output || `Exit code: ${code}`,
                                 duration,
                                 output: output
@@ -160,7 +164,7 @@ export class TestRunner {
                     } 
                     catch {
                         resolve({
-                            passed: false,
+                            status: TestStatus.Errored,
                             message: output.trim() || `Exit code: ${code}`,
                             duration
                         });
@@ -170,7 +174,7 @@ export class TestRunner {
 
             proc.on('error', (err) => {
                 resolve({
-                    passed: false,
+                    status: TestStatus.Errored,
                     message: `Failed to start AHK: ${err.message}`
                 });
             });

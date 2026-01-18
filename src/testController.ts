@@ -2,7 +2,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import { parseTestFile, TestClass } from './parser.js';
-import { TestRunner } from './runner.js';
+import { TestResult, TestRunner, TestStatus } from './runner.js';
 import { TestItemCoverage } from './coverage.js';
 
 export class AhkTestController implements vscode.Disposable {
@@ -157,19 +157,13 @@ export class AhkTestController implements vscode.Disposable {
 
         let numPassed: number = 0, numFailed: number = 0, numErrored: number = 0;
 
-        for (const test of testsToRun) {
+        await Promise.all(testsToRun.map(async test => {
             const testName = test.id.split('::').slice(1).join('.');
-            if (token.isCancellationRequested) {
-                run.appendOutput("Cancelling test run\r\n");
-                break; 
-            }
-
             run.started(test);
-            
-            try {
-                const result = await this.runner.runTest(test, token);
-                
-                if (result.passed) {
+            const result = await this.runSingleTest(test, token, withCoverage);
+
+            switch(result.status) {
+                case TestStatus.Passed:
                     run.passed(test, result.duration);
                     run.appendOutput(`✅ PASS: ${testName}\r\n`, undefined, test);
                     numPassed++;
@@ -177,30 +171,37 @@ export class AhkTestController implements vscode.Disposable {
                     if (withCoverage && result.coverage) {
                         this.perTestCoverage.set(test, result.coverage);
                     }
-                } 
-                else {
-                    const testMessage: vscode.TestMessage = {
+                    break;
+                case TestStatus.Failed:
+                    const failureMessage: vscode.TestMessage = {
                         message: result.message, 
                         location: result.error?.location, 
                         stackTrace: result.error?.stack 
                     };
                     run.appendOutput(`❌ FAIL: ${testName}\r\n`, undefined, test);
-                    run.failed(test, testMessage, result.duration); 
+                    run.failed(test, failureMessage, result.duration); 
                     numFailed++;
-                }
-                
-                if(result.output){
-                    run.appendOutput(`${result.output}\r\n`, undefined, test);
-                }
-            } 
-            catch (err) {
-                run.appendOutput(`🚨 ERROR: ${testName}\r\n`, undefined, test);
-                run.appendOutput(`${err}\r\n`, undefined, test);
-
-                run.errored(test, new vscode.TestMessage(String(err)));
-                numErrored++;
+                    break;
+                case TestStatus.Skipped:
+                    run.appendOutput(`➖ SKIPPED: ${testName}\r\n`, undefined, test);
+                    run.skipped(test);
+                    break;
+                case TestStatus.Errored:
+                    const errorMessage: vscode.TestMessage = {
+                        message: result.message, 
+                        location: result.error?.location, 
+                        stackTrace: result.error?.stack 
+                    };
+                    run.appendOutput(`🚨 ERROR: ${testName}\r\n`, undefined, test);
+                    run.failed(test, errorMessage, result.duration); 
+                    numErrored++;
+                    break;
             }
-        }
+            
+            if(result.output){
+                run.appendOutput(`${result.output}\r\n`, undefined, test);
+            }
+        }));
 
         const numTotal = numPassed + numFailed + numErrored;
         run.appendOutput(`🧪 Run complete! Ran ${numTotal} tests\r\n`);
@@ -217,6 +218,20 @@ export class AhkTestController implements vscode.Disposable {
 
         run.end();
     }
+
+    private async runSingleTest(test: vscode.TestItem, token: vscode.CancellationToken, withCoverage: boolean) : Promise<TestResult> {
+        if(token.isCancellationRequested) {
+            return { message: "Skipped", status: TestStatus.Skipped };
+        }
+
+        try{
+            return await this.runner.runTest(test, token);
+        }
+        catch (err: any) {
+            return {message: err.toString(), status: TestStatus.Errored };
+        }
+    }
+
 
     private collectTests(request: vscode.TestRunRequest): vscode.TestItem[] {
         const tests: vscode.TestItem[] = [];
