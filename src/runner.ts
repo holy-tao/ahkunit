@@ -27,7 +27,7 @@ export interface TestResult {
 
 export class TestRunner {
     private readonly templateContent: string;
-    private readonly ahkPath: string;
+    private ahkPath: string;
     private warningStatements: string;
     private failOnWarnings: boolean;
 
@@ -62,6 +62,7 @@ export class TestRunner {
             .map(text => `#Warn ${text}, StdOut`)
             .join('\r\n') + '\r\n';
         this.failOnWarnings = config.get<boolean>('failOnWarnings') || false;
+        this.ahkPath = config.get<string>('executablePath') || 'C:\\Program Files\\AutoHotkey\\v2\\AutoHotkey64.exe';
     }
 
     async runTest(test: vscode.TestItem, token: vscode.CancellationToken): Promise<TestResult> {
