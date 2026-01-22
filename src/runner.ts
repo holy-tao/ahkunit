@@ -139,10 +139,7 @@ export class TestRunner {
 
                 // Extract duration information from delimiters
                 const durationMatch = output.match(durationRegex);
-                if(!durationMatch) {
-                    throw Error("Failed to parse test duration from AHK script!");
-                }
-                const duration = Number.parseFloat(durationMatch[1]);
+                const duration = durationMatch ? Number.parseFloat(durationMatch[1]) : 0;
                 output = output.replace(durationRegex, '');
 
                 if (code === 0 && output.includes('PASS') && !(this.failOnWarnings && output.match(warningRegex))) {
