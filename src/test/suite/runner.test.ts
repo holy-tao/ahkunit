@@ -3,6 +3,8 @@
 import * as assert from 'assert';
 import * as path from 'path';
 import * as vscode from 'vscode';
+import * as fs from 'fs';
+import * as os from 'os';
 import { TestRunner, TestStatus } from '../../runner';
 
 /**
@@ -136,4 +138,59 @@ suite('Test Runner Integration Suite', () => {
             `Error message should contain the test failure message: "${result.message}"`);
         assert.ok(result.error !== undefined, 'Result should have error object');
     });
+
+    test('test with load-time error fails and captures error output', async function() {
+        // Skip if AutoHotkey is not available
+        if (skipTests) {
+            this.skip();
+        }
+
+        const testCode = `
+        #Include NonExistentFile.ahk
+        `;
+        const tempTestFile = path.join(os.tmpdir(),'ahkunit-InvalidIncludeTest.temp.ahk');
+        fs.writeFileSync(tempTestFile, testCode, 'utf8');
+
+        const testItem = createMockTestItem(
+            `file://${tempTestFile}::InvalidIncludeTests::Test_InvalidInclude_Fails`,
+            'Test_InvalidInclude_Fails',
+            vscode.Uri.file(tempTestFile)
+        );
+        const token = new vscode.CancellationTokenSource().token;
+        const result = await runner.runTest(testItem, token);
+
+        assert.strictEqual(result.status, TestStatus.Failed, 'Test should fail due to load-time error');
+        assert.ok(result.message.includes('#Include file "NonExistentFile.ahk" cannot be opened'), 
+            `Error message should contain the include error: "${result.message}"`);
+    });
+
+    /**
+     * Tests a critical error from an invalid memory access. Note that these can't be caught, so you'll need to
+     * dismiss the AHK popup manually when it appears or the test will time out
+     */
+    test('test with fatal error fails', async function() {
+        // Skip if AutoHotkey is not available
+        if (skipTests) {
+            this.skip();
+        }
+
+        const testCode = `
+        class InvalidMemoryAccessTests {
+            Test_InvalidMemoryAccess_FatalError() => NumGet(-1, "ptr")
+        }
+        `;
+        const tempTestFile = path.join(os.tmpdir(),'ahkunit-InvalidMemoryAccessTests.temp.ahk');
+        fs.writeFileSync(tempTestFile, testCode, 'utf8');
+
+        const testItem = createMockTestItem(
+            `file://${tempTestFile}::InvalidMemoryAccessTests::Test_InvalidMemoryAccess_FatalError`,
+            'Test_InvalidMemoryAccess_FatalError',
+            vscode.Uri.file(tempTestFile)
+        );
+        const token = new vscode.CancellationTokenSource().token;
+        const result = await runner.runTest(testItem, token);
+
+        assert.strictEqual(result.status, TestStatus.Failed, 'Test should fail due to critical memory error');
+    });
 });
+    
