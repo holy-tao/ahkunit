@@ -27,7 +27,7 @@
     "type": "github",
     "url": "https://github.com/holy-tao/ahkunit"
   },
-  "version": "0.2.8",
+  "version": "0.2.9",
   "engines": {
     "vscode": "^1.108.0"
   },
