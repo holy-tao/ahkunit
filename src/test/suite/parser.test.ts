@@ -218,4 +218,48 @@ suite('Parser Test Suite', () => {
         assert.ok(testClass.methods.find(m => m.name === 'FatArrow'), 'FatArrow should exist');
         assert.ok(testClass.methods.find(m => m.name === 'NotFatArrow'), 'NotFatArrow should exist');
     });
+
+    test('handles open braces in string literals', () => {
+        const content = `
+            class Test {
+                Function1() {
+                    problematic := "{"
+                }
+
+                Function2() {
+
+                }
+            }
+        `;
+
+        const classes = parseTestFile(content);
+        assert.strictEqual(classes.length, 1, 'Clases should have 1 class');
+
+        const testClass = classes.find(c => c.name === 'Test');
+        assert.ok(testClass, 'Test should exist');
+        assert.ok(testClass.methods.find(m => m.name === 'Function1'), 'Function1 should exist');
+        assert.ok(testClass.methods.find(m => m.name === 'Function2'), 'Function2 should exist');
+    });
+
+    test('handles close braces in string literals', () => {
+        const content = `
+            class Test {
+                Function1() {
+                    problematic := "}"
+                }
+
+                Function2() {
+
+                }
+            }
+        `;
+
+        const classes = parseTestFile(content);
+        assert.strictEqual(classes.length, 1, 'Clases should have 1 class');
+
+        const testClass = classes.find(c => c.name === 'Test');
+        assert.ok(testClass, 'Test should exist');
+        assert.ok(testClass.methods.find(m => m.name === 'Function1'), 'Function1 should exist');
+        assert.ok(testClass.methods.find(m => m.name === 'Function2'), 'Function2 should exist');
+    });
 });

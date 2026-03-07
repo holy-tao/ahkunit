@@ -166,8 +166,33 @@ function findOpeningBrace(lines: string[], startLine: number): number {
 function findMatchingBrace(lines: string[], openBraceLine: number): number {
     let depth = 0;
 
+    let inDblQuotStr = false;
+    let inSglQuotStr = false;
+
     for (let i = openBraceLine; i < lines.length; i++) {
         for (const char of lines[i]) {
+            if (inDblQuotStr) {
+                if (char === '"') {
+                    inDblQuotStr = false;
+                }
+                continue;
+            }
+            else if(char === '"') {
+                inDblQuotStr = true;
+                continue;
+            }
+
+            if (inSglQuotStr) {
+                if (char === '\'') {
+                    inSglQuotStr = false;
+                }
+                continue;
+            }
+            else if(char === '\'') {
+                inSglQuotStr = true;
+                continue;
+            }
+
             if (char === '{') {
                 depth++;
             } else if (char === '}') {
