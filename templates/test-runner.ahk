@@ -9,28 +9,31 @@ ListLines(false)
 
 A_WorkingDir := A_Args[1]
 
-try {
-    DllCall("QueryPerformanceFrequency", "Int64*", &freq := 0)
-    DllCall("QueryPerformanceCounter", "Int64*", &counterBefore := 0)
-    ListLines(true)
+OnError((thrown, mode) => ExitForError(thrown))
 
-    ;@ahkunit-call
+DllCall("QueryPerformanceFrequency", "Int64*", &freq := 0)
+DllCall("QueryPerformanceCounter", "Int64*", &counterBefore := 0)
+ListLines(true)
 
-    ListLines(false)
-    DllCall("QueryPerformanceCounter", "Int64*", &counterAfter := 0)
+;@ahkunit-call
 
-    duration := (counterAfter - counterBefore) / freq * 1000    ; VSCode wants duration in milliseconds
-    FileAppend(Format("<<<AHK_DURATION_START>>>{1}<<<AHK_DURATION_END>>>`r`n", duration), "*")
+ListLines(false)
+DllCall("QueryPerformanceCounter", "Int64*", &counterAfter := 0)
 
-    ; Coverage preamble and "Press [F5] to refresh" are split from lines by a blank line
-    lines := StrSplit(ScriptInfo("ListLines"), "`r`n`r`n")[2]
-    FileAppend("<<<AHK_LINES_START>>>", "*")
-    FileAppend(lines, "*")
-    FileAppend("<<<AHK_LINES_END>>>", "*")
+duration := (counterAfter - counterBefore) / freq * 1000    ; VSCode wants duration in milliseconds
+FileAppend(Format("<<<AHK_DURATION_START>>>{1}<<<AHK_DURATION_END>>>`r`n", duration), "*")
 
-    FileAppend("PASS", "*")
-} 
-catch Error as err {
+; Coverage preamble and "Press [F5] to refresh" are split from lines by a blank line
+lines := StrSplit(ScriptInfo("ListLines"), "`r`n`r`n")[2]
+FileAppend("<<<AHK_LINES_START>>>", "*")
+FileAppend(lines, "*")
+FileAppend("<<<AHK_LINES_END>>>", "*")
+
+FileAppend("PASS", "*")
+
+ExitApp(0)
+
+ExitForError(err) {
     errorJson := Format('
 (
 {
@@ -62,8 +65,6 @@ catch Error as err {
 
     ExitApp(1)
 }
-
-ExitApp(0)
 
 ; Escapes JSON for ingestion back into TypeScript
 JsonEscape(str) {
