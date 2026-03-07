@@ -193,6 +193,13 @@ function findMatchingBrace(lines: string[], openBraceLine: number): number {
                 continue;
             }
 
+            // Start of line comment, stop scanning this line
+            // NOTE strictly speaking this must be preceded by a space, but it's a syntax error if it isn't so
+            // this naiive check is good enough
+            if (char === ';') {
+                break;
+            }
+
             if (char === '{') {
                 depth++;
             } else if (char === '}') {
