@@ -168,9 +168,23 @@ function findMatchingBrace(lines: string[], openBraceLine: number): number {
 
     let inDblQuotStr = false;
     let inSglQuotStr = false;
+    let inBlockComment = false;
 
     for (let i = openBraceLine; i < lines.length; i++) {
-        for (const char of lines[i]) {
+        for (let c = 0; c < lines[i].length; c++) {
+            const char = lines[i][c];
+
+            if (inBlockComment) {
+                if (char === '*' && c < lines[i].length - 1 && lines[i][c] + 1 === '/') {
+                    inBlockComment = false;
+                }
+                continue;
+            }
+            else if(char === '/' && c < lines[i].length - 1 && lines[i][c] + 1 === '*') {
+                inBlockComment = true;
+                continue;
+            }
+
             if (inDblQuotStr) {
                 if (char === '"') {
                     inDblQuotStr = false;
