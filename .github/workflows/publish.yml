@@ -50,7 +50,7 @@ jobs:
           name: extension-build
 
       - name: Publish extension
-        uses: HaaLeo/publish-vscode-extension@v1
+        uses: HaaLeo/publish-vscode-extension@v2
         with:
           extensionFile: extension.vsix
           pat: ${{ matrix.registry == 'vscode' && secrets.VSCE_PAT || secrets.OPENVSX_ACCESS_TOKEN }}
