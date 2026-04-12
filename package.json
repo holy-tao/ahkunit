@@ -29,7 +29,7 @@
   },
   "version": "0.2.10",
   "engines": {
-    "vscode": "^1.108.0"
+    "vscode": "^1.115.0"
   },
   "main": "./out/extension.js",
   "files": [
